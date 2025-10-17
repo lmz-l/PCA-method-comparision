@@ -1,0 +1,416 @@
+---
+title: "Hw 2 Stat 541 Sep 20, 2024"
+author: "Mingzhe Liu"
+format: html
+editor: visual
+---
+
+## 1
+```{r}
+CASchools <- read.csv("C:/Users/16339/Downloads/CASchools.csv")
+```
+
+### (a)
+
+```{r}
+data_scaled <- scale(CASchools[,-1])
+
+cov_matrix <- cov(data_scaled)
+
+eigen_decomp <- eigen(cov_matrix)
+
+eigenvalues <- eigen_decomp$values
+eigenvectors <- eigen_decomp$vectors
+
+variance_explained <- eigenvalues / sum(eigenvalues)
+
+eigenvalues
+eigenvectors
+variance_explained
+```
+
+### (b)
+
+```{r}
+cumulative_variance_explained <- cumsum(variance_explained)
+
+plot(variance_explained * 100, 
+     type = "b", 
+     xlab = "Principal Component", 
+     ylab = "Percentage of Variance Explained", 
+     ylim =c(0,130),
+     main = "Scree Plot", 
+     pch = 19, 
+     col = "blue")
+
+lines(cumulative_variance_explained * 100, 
+      type = "b", 
+      col = "red", 
+      pch = 19)
+
+legend("topright", legend = c("Variance Explained", "Cumulative Variance"), col = c("blue", "red"), pch = 19)
+
+```
+
+The plot shows the variance explained by principal components, its percentage goes down with the number of PC goes up.
+
+Since the first few Principal components keep the most of variance, we could ignore the following components.
+
+In this case, I would like to keep 4 components, since the first 4 explain more than 90% variance.
+
+### (c)
+
+```{r}
+pc1 <- eigenvectors[, 1]
+pc2 <- eigenvectors[, 2]
+pc3 <- eigenvectors[, 3]
+
+plot(pc1, 
+     type = "b", 
+     col = "blue", 
+     pch = 19, 
+     xlab = "Index of Columns (Variables)", 
+     ylab = "Principal Component Values", 
+     ylim = c(-1,1),
+     main = "Principal Components 1, 2, and 3")
+
+lines(pc2, 
+      type = "b", 
+      col = "red", 
+      pch = 19)
+
+lines(pc3, 
+      type = "b", 
+      col = "orange", 
+      pch = 19)
+
+legend("topright", 
+       legend = c("PC1", "PC2", "PC3"), 
+       col = c("blue", "red", "orange"), 
+       pch = 19)
+
+```
+The plot shows how variables contribute to the first three principal components.
+
+### (d)
+
+```{r}
+pc1 <- eigenvectors[, 1]
+
+std_devs <- apply(CASchools[,-1], 2, sd)
+
+plot(std_devs, pc1, 
+     type = "b", 
+     col = "blue", 
+     pch = 19, 
+     xlab = "Standard Deviation of Columns (Variables)", 
+     ylab = "First Principal Component Values", 
+     main = "PC1 vs Standard Deviations")
+
+```
+This plot show that there is no relationship between PC1 and standard deviation.
+
+### (e)
+
+```{r}
+pc1 <- eigenvectors[, 1]
+pc2 <- eigenvectors[, 2]
+pc3 <- eigenvectors[, 3]
+
+projections <- data_scaled %*% eigenvectors[, 1:3]
+
+plot(projections[, 1], projections[, 2], 
+     xlab = "PC1", 
+     ylab = "PC2", 
+     main = "Projection onto PC1 vs PC2", 
+     col = "blue", 
+     pch = 19)
+
+plot(projections[, 1], projections[, 3], 
+     xlab = "PC1", 
+     ylab = "PC3", 
+     main = "Projection onto PC1 vs PC3", 
+     col = "red", 
+     pch = 19)
+
+plot(projections[, 2], projections[, 3], 
+     xlab = "PC2", 
+     ylab = "PC3", 
+     main = "Projection onto PC2 vs PC3", 
+     col = "orange", 
+     pch = 19)
+
+```
+The PC1 vs PC2 plot shows how most of the variance is spread across the first two components.
+
+The PC1 vs PC3 plot shows the relationship between the strongest component (PC1) and the less important PC3.
+
+The PC2 vs PC3 plot shows a tighter cluster, indicates PC3 explains less variance compared to PC2.
+
+
+## 2
+```{r}
+Hitters <- read.csv("C:/Users/16339/Downloads/Hitters.csv")
+```
+
+### (a)
+
+```{r}
+hitters_data_clean <- Hitters[, -1]
+pca_model <- princomp(hitters_data_clean, cor = FALSE)
+summary(pca_model)
+
+cumulative_variance <- cumsum(pca_model$sdev^2 / sum(pca_model$sdev^2))
+
+num_components_99_var <- which(cumulative_variance >= 0.99)[1]
+
+num_components_99_var
+```
+It takes 1 component to describe 99% variation.
+
+### (b)
+```{r}
+loadings_matrix <- pca_model$loadings[, 1:4]
+
+abs_loadings <- abs(loadings_matrix)
+
+std_devs <- apply(hitters_data_clean, 2, sd)
+
+par(mfrow=c(2, 2)) 
+
+for (i in 1:4) {
+  plot(std_devs, abs_loadings[, i], 
+       xlab = "Standard Deviations of Columns", 
+       ylab = paste("Absolute Value of PC", i, "Loadings"), 
+       main = paste("PC", i, "Loadings vs Std Dev"))
+}
+par(mfrow=c(1, 1))
+
+```
+According to the plot, pc1 shows clear relationship with the standard deviation, this justify the result in part (a).
+
+### (c)
+```{r}
+#PCA with correlation matrix
+pca_model_normalized <- princomp(hitters_data_clean, cor = TRUE)
+
+summary(pca_model_normalized)
+
+cumulative_variance_normalized <- cumsum(pca_model_normalized$sdev^2 /sum(pca_model_normalized$sdev^2))
+
+num_components_99_normalized <- which(cumulative_variance_normalized >= 0.99)[1]
+
+num_components_99_normalized
+
+cumulative_variance_normalized
+
+```
+It takes 8 components to decribe 99% of variation.
+
+Since the first 8 explain 99% of the variance in the normalized data, it is likely to keep 8 components.
+
+### (d)
+```{r}
+loadings_normalized <- pca_model_normalized$loadings[, 1:4]
+
+abs_loadings_normalized <- abs(loadings_normalized)
+
+std_devs_original <- apply(hitters_data_clean, 2, sd)
+
+par(mfrow=c(2, 2)) # Set up a 2x2 plot layout
+
+for (i in 1:4) {
+  plot(std_devs_original, abs_loadings_normalized[, i], 
+       xlab = "Standard Deviations of Columns (Original Data)", 
+       ylab = paste("Absolute Value of PC", i, "Loadings"), 
+       main = paste("PC", i, "Loadings vs Std Dev (Original Data)"))
+}
+
+par(mfrow=c(1, 1))
+
+```
+  According to the result, variables contribute more equally in normalized PCA.
+  
+### (e)
+
+According to the result, original PCA prioritizes high-variance variables, and normalized PCA ensures equal contribution from all variables by standardizing their scales.
+
+People may choose original PCA to focus on the largest differences between variables, or normalized PCA to treat all variables equally, especially when they have different units or sizes.
+
+## 3
+```{r}
+Artificial_1 <- read.csv("C:/Users/16339/Downloads/Artificial_1.csv")
+Artificial_2 <- read.csv("C:/Users/16339/Downloads/Artificial_2.csv")
+penguins <- read.csv("C:/Users/16339/Downloads/penguins.csv")
+```
+
+### (a)
+
+```{r}
+Artificial_1_clean <- Artificial_1[, -1]
+Artificial_2_clean <- Artificial_2[, -1]
+penguins_clean <- penguins[, -1]
+
+pca_artificial_1 <- princomp(Artificial_1_clean, cor = FALSE)
+
+pca_artificial_2 <- princomp(Artificial_2_clean, cor = FALSE)
+
+pca_penguins <- princomp(penguins_clean, cor = FALSE)
+
+plot(pca_artificial_1$scores[,1], pca_artificial_1$scores[,2], 
+     xlab = "PC1", ylab = "PC2", main = "Artificial_1: PC1 vs PC2", pch = 19, col = 'blue')
+
+plot(pca_artificial_2$scores[,1], pca_artificial_2$scores[,2], 
+     xlab = "PC1", ylab = "PC2", main = "Artificial_2: PC1 vs PC2", pch = 19, col = 'red')
+
+plot(pca_penguins$scores[,1], pca_penguins$scores[,2], 
+     xlab = "PC1", ylab = "PC2", main = "Penguins: PC1 vs PC2", pch = 19, col = 'orange')
+
+
+```
+The plot for Artificial_1 shows a curve, which means non-linear relationships with dominant variance.
+
+The plot for Artificial_2 shows it is dominated by large-scale variables.
+
+Then plot for penguins shows the it is also affected by large-scale variables.
+
+### (b)
+
+```{r}
+pca_artificial_1 <- princomp(Artificial_1_clean, cor = TRUE)
+
+pca_artificial_2 <- princomp(Artificial_2_clean, cor = TRUE)
+
+pca_penguins <- princomp(penguins_clean, cor = TRUE)
+
+#scores
+scores_artificial_1 <- pca_artificial_1$scores
+scores_artificial_2 <- pca_artificial_2$scores
+scores_penguins <- pca_penguins$scores
+
+
+pc1_artificial_1_norm <- scale(scores_artificial_1[,1])
+pc2_artificial_1_norm <- scale(scores_artificial_1[,2])
+
+pc1_artificial_2_norm <- scale(scores_artificial_2[,1])
+pc2_artificial_2_norm <- scale(scores_artificial_2[,2])
+
+pc1_penguins_norm <- scale(scores_penguins[,1])
+pc2_penguins_norm <- scale(scores_penguins[,2])
+
+
+plot(pc1_artificial_1_norm, pc2_artificial_1_norm, 
+     xlab = "Normalized PC1", ylab = "Normalized PC2", 
+     main = "Artificial_1: Normalized PC1 vs PC2", pch = 19, col = 'blue')
+
+plot(pc1_artificial_2_norm, pc2_artificial_2_norm, 
+     xlab = "Normalized PC1", ylab = "Normalized PC2", 
+     main = "Artificial_2: Normalized PC1 vs PC2", pch = 19, col = 'red')
+
+plot(pc1_penguins_norm, pc2_penguins_norm, 
+     xlab = "Normalized PC1", ylab = "Normalized PC2", 
+     main = "Penguins: Normalized PC1 vs PC2", pch = 19, col = 'orange')
+
+
+```
+The plot for Artificial_1 is similar to previous.
+
+The plot for Artificial_2 is a circle. It may shows balanced contribution of each variable.
+
+The plot for penguins is also more balanced of each variable.
+
+### (c)
+
+For Artificial 1, the two plot is similar, so it is better to choose plot in part (a). 
+
+For Artificial 2, it prefer the second plot 2. Since the circle pattern indicates all variable contribute equally.
+
+For penguin data, it could depends on the variable we want to analyze. Covariance PCA highlights size differences, while correlation PCA balances feature contributions for better relationships.
+
+## 4
+
+```{r}
+College <- read.csv("C:/Users/16339/Downloads/College.csv")
+```
+
+### (a)
+
+```{r}
+College_data <- College[,-1]
+
+pca_result <- princomp(College_data, cor=TRUE)
+
+#n= nrow(College)
+pca_scores <- pca_result$scores
+
+#summary(pca_result)
+
+head(pca_scores)
+```
+
+### (b)
+
+```{r}
+pca_result_prcomp <- prcomp(College_data, scale.=TRUE, retx=TRUE)
+
+pca_scores_prcomp <- pca_result_prcomp$x
+
+#summary(pca_result_prcomp)
+
+head(pca_scores_prcomp)
+```
+### (c)
+
+```{r}
+summary(pca_result)
+summary(pca_result_prcomp)
+
+
+all.equal(summary(pca_result)$sd, summary(pca_result_prcomp)$sd, check.attributes = FALSE)
+```
+The true shows the two methods are the same.
+
+### (d)
+
+```{r}
+## rotation and loading
+
+check_comp_fun = function(x,y){
+  isTRUE(all.equal(x,y,check.attributes =FALSE)) || isTRUE(all.equal(x,-y,check.attributes =FALSE))
+}
+
+out= rep(NA,ncol(pca_result_prcomp$rotation))
+for(i in 1:ncol(pca_result_prcomp$rotation)){
+  out[i] = check_comp_fun(pca_result$loadings[,i], pca_result_prcomp$rotation[,i])
+}
+out
+```
+
+The result justify that the two methods agree up to reflection.
+
+### (e)
+
+```{r}
+check_proj_fun = function(x, y) {
+  
+  n = length(x)
+  
+  scale <- sqrt(n/(n-1))
+  
+  isTRUE(all.equal(x, y, check.attributes=FALSE)) ||
+  isTRUE(all.equal(x, -y, check.attributes=FALSE)) ||
+  isTRUE(all.equal(x, scale * y, check.attributes=FALSE)) ||
+  isTRUE(all.equal(x, -scale * y, check.attributes=FALSE)) ||
+  isTRUE(all.equal(scale * x, y, check.attributes=FALSE)) ||
+  isTRUE(all.equal(scale * x, -y, check.attributes=FALSE))
+}
+
+out2 = rep(NA, ncol(pca_result_prcomp$rotation))
+
+for (i in 1:ncol(pca_result_prcomp$rotation)) {
+  out2[i] <- check_proj_fun(pca_result$loadings[,i], pca_result_prcomp$rotation[,i])
+}
+
+out2
+```
+The result justify that the two methods agree up to reflection and scaling by $\sqrt\frac{n}{n-1}$.
